@@ -1,0 +1,79 @@
+name: Release
+
+# Vydanie: git tag v1.2.3 && git push origin v1.2.3
+# Workflow otestuje projekt, zostaví inštalátor (Inno Setup) a vytvorí GitHub Release s priloženým setup.exe.
+# Ručné spustenie (workflow_dispatch) zostaví inštalátor len ako artefakt workflowu, bez vydania.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Verzia inštalátora (X.Y.Z)'
+        required: true
+        default: '0.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Určiť verziu
+        id: ver
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          $raw = if ($env:GITHUB_EVENT_NAME -eq 'push') { $env:GITHUB_REF_NAME } else { $env:INPUT_VERSION }
+          $version = $raw -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Verzia '$raw' nemá tvar X.Y.Z (napr. v1.2.3)."
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "Verzia: $version"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Nainštalovať Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") |
+            Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            choco install innosetup --yes --no-progress
+          }
+
+      - name: Test, publish a inštalátor
+        shell: pwsh
+        run: ./build.ps1 -Version '${{ steps.ver.outputs.version }}'
+
+      - name: Kontrolný súčet
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem artifacts/installer -Filter *.exe | Select-Object -First 1
+          $hash = (Get-FileHash $setup.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($setup.Name)" | Set-Content -Encoding ascii "$($setup.FullName).sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: artifacts/installer/*
+          if-no-files-found: error
+
+      - name: Vytvoriť GitHub Release
+        if: github.event_name == 'push'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$env:GITHUB_REF_NAME" (Get-ChildItem artifacts/installer/*).FullName `
+            --title "YtMp3 Downloader $env:GITHUB_REF_NAME" `
+            --generate-notes `
+            --verify-tag

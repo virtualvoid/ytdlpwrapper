@@ -1,0 +1,303 @@
+﻿<Window x:Class="YtMp3Downloader.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:YtMp3Downloader.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="YtMp3 Downloader" Height="760" Width="1020" MinWidth="760" MinHeight="520"
+        Background="#F4F5F7" FontFamily="Segoe UI" FontSize="13"
+        WindowStartupLocation="CenterScreen"
+        d:DataContext="{d:DesignInstance vm:MainViewModel}">
+    <Window.Resources>
+        <Style x:Key="Glyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
+    </Window.Resources>
+
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Properties" Executed="OnSettingsExecuted" />
+        <CommandBinding Command="ApplicationCommands.Help" Executed="OnAboutExecuted" />
+        <CommandBinding Command="ApplicationCommands.Close" Executed="OnExitExecuted" />
+    </Window.CommandBindings>
+
+    <Window.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding StartCommand}" />
+        <KeyBinding Key="F5" Modifiers="Shift" Command="{Binding StopCommand}" />
+        <KeyBinding Key="O" Modifiers="Ctrl" Command="{Binding OpenFolderCommand}" />
+        <KeyBinding Key="V" Modifiers="Ctrl+Shift" Command="{Binding PasteCommand}" />
+    </Window.InputBindings>
+
+    <DockPanel>
+        <!-- Menu -->
+        <Menu DockPanel.Dock="Top" Background="White">
+            <MenuItem Header="_Súbor">
+                <MenuItem Header="_Vložiť URL zo schránky" InputGestureText="Ctrl+Shift+V" Command="{Binding PasteCommand}" />
+                <MenuItem Header="_Pridať do zoznamu" Command="{Binding AddCommand}" />
+                <Separator />
+                <MenuItem Header="Otvoriť _výstupný priečinok" InputGestureText="Ctrl+O" Command="{Binding OpenFolderCommand}" />
+                <Separator />
+                <MenuItem Header="_Koniec" InputGestureText="Alt+F4" Command="ApplicationCommands.Close" />
+            </MenuItem>
+            <MenuItem Header="S_ťahovanie">
+                <MenuItem Header="_Štart" InputGestureText="F5" Command="{Binding StartCommand}" />
+                <MenuItem Header="S_top" InputGestureText="Shift+F5" Command="{Binding StopCommand}" />
+                <MenuItem Header="Skúsiť _znova chybné" Command="{Binding RetryFailedCommand}" />
+                <Separator />
+                <MenuItem Header="Odstrániť _hotové" Command="{Binding ClearFinishedCommand}" />
+                <MenuItem Header="Vyčistiť celý _zoznam" Command="{Binding ClearAllCommand}" />
+            </MenuItem>
+            <MenuItem Header="_Zobraziť">
+                <MenuItem Header="_Log" IsCheckable="True" IsChecked="{Binding IsLogVisible, Mode=TwoWay}" />
+            </MenuItem>
+            <MenuItem Header="_Nástroje">
+                <MenuItem Header="Stiahnuť / doplniť _nástroje" Command="{Binding SetupToolsCommand}" />
+                <MenuItem Header="Aktualizovať _yt-dlp" Command="{Binding UpdateYtDlpCommand}" />
+                <Separator />
+                <MenuItem Header="_Nastavenia…" Command="ApplicationCommands.Properties" />
+            </MenuItem>
+            <MenuItem Header="_Pomocník">
+                <MenuItem Header="_O aplikácii" Command="ApplicationCommands.Help" />
+            </MenuItem>
+        </Menu>
+
+        <!-- Panel nástrojov -->
+        <ToolBarTray DockPanel.Dock="Top" Background="#EEF0F3" IsLocked="True">
+            <ToolBar x:Name="MainToolBar" Band="0" BandIndex="0" ToolBarTray.IsLocked="True" Loaded="OnToolBarLoaded">
+                <Button Command="{Binding StartCommand}" ToolTip="Spustiť sťahovanie (F5)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE768;" Style="{StaticResource Glyph}" Foreground="#2E7D32" />
+                        <TextBlock Text="Štart" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding StopCommand}" ToolTip="Zastaviť sťahovanie (Shift+F5)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE71A;" Style="{StaticResource Glyph}" Foreground="#C62828" />
+                        <TextBlock Text="Stop" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding RetryFailedCommand}" ToolTip="Skúsiť znova položky s chybou">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72C;" Style="{StaticResource Glyph}" />
+                        <TextBlock Text="Znova chybné" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Separator />
+                <Button Command="{Binding ClearFinishedCommand}" ToolTip="Odstrániť hotové playlisty zo zoznamu">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74D;" Style="{StaticResource Glyph}" />
+                        <TextBlock Text="Odstrániť hotové" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Separator />
+                <Button Command="{Binding OpenFolderCommand}" ToolTip="Otvoriť výstupný priečinok (Ctrl+O)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE838;" Style="{StaticResource Glyph}" />
+                        <TextBlock Text="Priečinok" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Command="ApplicationCommands.Properties" ToolTip="Nastavenia">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE713;" Style="{StaticResource Glyph}" />
+                        <TextBlock Text="Nastavenia" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </ToolBar>
+        </ToolBarTray>
+
+        <!-- Stavový riadok -->
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
+            <StatusBarItem Grid.Column="0">
+                <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding StatusText}" />
+            </StatusBarItem>
+            <StatusBarItem Grid.Column="1">
+                <ProgressBar Width="220" Height="12" Maximum="100" Value="{Binding OverallProgress, Mode=OneWay}" />
+            </StatusBarItem>
+            <StatusBarItem Grid.Column="2" Margin="6,0,4,0">
+                <TextBlock Text="{Binding OverallProgress, StringFormat={}{0:0} %}" MinWidth="36" TextAlignment="Right" />
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- Log -->
+        <TextBox x:Name="LogBox" DockPanel.Dock="Bottom" Height="160" Margin="12,0,12,8" IsReadOnly="True"
+                 FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap"
+                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                 Text="{Binding LogText, Mode=OneWay}"
+                 Visibility="{Binding IsLogVisible, Converter={StaticResource BoolToVis}}"
+                 TextChanged="OnLogTextChanged" />
+
+        <Grid Margin="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Pridanie URL -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid Margin="0,0,8,0">
+                    <TextBox x:Name="UrlBox" Text="{Binding UrlText, UpdateSourceTrigger=PropertyChanged}"
+                             Height="34" IsEnabled="{Binding ToolsReady}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding AddCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <TextBlock Text="Vložte URL playlistu alebo videa z YouTube a stlačte Enter…" Foreground="#9CA3AF"
+                               Margin="10,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=UrlBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+                <Button Grid.Column="1" Content="Pridať" Margin="0" Style="{StaticResource PrimaryButton}"
+                        Command="{Binding AddCommand}" />
+            </Grid>
+
+            <!-- Banner nástrojov + indikátor načítania -->
+            <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                <ProgressBar Height="3" IsIndeterminate="True" Margin="0,0,0,6"
+                             Visibility="{Binding IsAdding, Converter={StaticResource BoolToVis}}" />
+                <Border Visibility="{Binding ShowToolsBanner, Converter={StaticResource BoolToVis}}"
+                        Background="#FFF4CE" BorderBrush="#E0C060" BorderThickness="1" CornerRadius="4" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="{Binding ToolsMessage}" TextWrapping="Wrap" />
+                        <ProgressBar Height="8" Margin="0,8,0,0" Maximum="100" Value="{Binding ToolsProgress}"
+                                     Visibility="{Binding ToolsBusy, Converter={StaticResource BoolToVis}}" />
+                        <Button Content="Stiahnuť nástroje" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,10,0,0"
+                                Command="{Binding SetupToolsCommand}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Zoznam playlistov -->
+            <ScrollViewer Grid.Row="2" Margin="0,10,0,0" VerticalScrollBarVisibility="Auto">
+                <Grid>
+                    <TextBlock Text="Zoznam je prázdny. Pridajte URL playlistu."
+                               Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"
+                               Margin="0,60,0,0" FontSize="15">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Playlists.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <ItemsControl ItemsSource="{Binding Playlists}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:PlaylistViewModel}">
+                                <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrushLight}"
+                                        BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10"
+                                        Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Otvoriť priečinok"
+                                                      Command="{Binding PlacementTarget.Tag.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                            <Separator />
+                                            <MenuItem Header="Odstrániť zo zoznamu"
+                                                      Command="{Binding PlacementTarget.Tag.RemoveCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="160" Height="90" Background="#E5E7EB" CornerRadius="4"
+                                                    ClipToBounds="True">
+                                                <Image Source="{Binding ThumbnailUrl}" Stretch="UniformToFill" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Subtitle}" Foreground="{StaticResource MutedBrush}"
+                                                           Margin="0,2,0,8" />
+                                                <ProgressBar Height="8" Maximum="100" Value="{Binding OverallProgress, Mode=OneWay}" />
+                                                <TextBlock Text="{Binding SummaryText}" Margin="0,4,0,0"
+                                                           Foreground="{StaticResource MutedBrush}" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Expander Header="Skladby" Margin="0,10,0,0" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                                            <ItemsControl ItemsSource="{Binding Entries}" Margin="0,6,0,0">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type vm:EntryViewModel}">
+                                                        <Grid Margin="0,3">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="40" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="240" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center"
+                                                                      Margin="0,0,8,0"
+                                                                      IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding IndexText}"
+                                                                       Foreground="{StaticResource MutedBrush}" />
+                                                            <TextBlock Grid.Column="2" Text="{Binding Title}"
+                                                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
+                                                            <StackPanel Grid.Column="3">
+                                                                <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis"
+                                                                           ToolTip="{Binding StatusText}" FontSize="12">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding IsFailed}" Value="True">
+                                                                                    <Setter Property="Foreground" Value="#B91C1C" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                                <ProgressBar Height="3" Maximum="100" Value="{Binding Percent, Mode=OneWay}"
+                                                                             Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</Window>
